@@ -4,6 +4,15 @@ from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
 from awsglue.context import GlueContext
 from awsglue.job import Job
+from awsglue import DynamicFrame
+
+
+def sparkSqlQuery(glueContext, query, mapping, transformation_ctx) -> DynamicFrame:
+    for alias, frame in mapping.items():
+        frame.toDF().createOrReplaceTempView(alias)
+    result = spark.sql(query)
+    return DynamicFrame.fromDF(result, glueContext, transformation_ctx)
+
 
 args = getResolvedOptions(sys.argv, ["JOB_NAME"])
 sc = SparkContext()
@@ -35,9 +44,21 @@ customer_trusted_join_accelerometer_trusted_node2 = Join.apply(
     transformation_ctx="customer_trusted_join_accelerometer_trusted_node2",
 )
 
+# Script generated for node filter_timestamp
+SqlQuery0 = """
+select * from myDataSource
+where timestamp >= sharewithresearchasofdate
+"""
+filter_timestamp_node1676666861076 = sparkSqlQuery(
+    glueContext,
+    query=SqlQuery0,
+    mapping={"myDataSource": customer_trusted_join_accelerometer_trusted_node2},
+    transformation_ctx="filter_timestamp_node1676666861076",
+)
+
 # Script generated for node drop_accelerometer_fields
 drop_accelerometer_fields_node1676651872310 = DropFields.apply(
-    frame=customer_trusted_join_accelerometer_trusted_node2,
+    frame=filter_timestamp_node1676666861076,
     paths=["user", "timestamp", "x", "y", "z"],
     transformation_ctx="drop_accelerometer_fields_node1676651872310",
 )
